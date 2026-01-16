@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Life Tracker iOS 26</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.cdnfonts.com/css/sf-pro-display');
+        
+        :root {
+            --bg-color: #000000;
+            --text-color: #ffffff;
+            --dot-color: #333333;
+            --active-dot: #ffffff;
+            --habit-color: #34c759; /* iOS Green */
+        }
+
+        @media (prefers-color-scheme: light) {
+            :root {
+                --bg-color: #f2f2f7;
+                --text-color: #000000;
+                --dot-color: #d1d1d6;
+                --active-dot: #000000;
+            }
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: 'SF Pro Display', -apple-system, sans-serif;
+            transition: all 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            padding: 40px 20px;
+        }
+
+        /* Clock & Progress */
+        .ios-clock {
+            font-size: 5rem;
+            font-weight: 600;
+            letter-spacing: -2px;
+            background: linear-gradient(180deg, var(--text-color) 30%, transparent 150%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        /* Grid System */
+        .calendar-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            justify-content: center;
+            max-width: 400px;
+            margin-top: 20px;
+        }
+
+        .month-section {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .month-label {
+            font-size: 0.6rem;
+            font-weight: 700;
+            opacity: 0.5;
+            text-transform: uppercase;
+        }
+
+        .dot-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 6px;
+        }
+
+        .dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background-color: var(--dot-color);
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .dot:active { transform: scale(1.5); }
+        .dot.today { background-color: #ff9f0a; box-shadow: 0 0 10px #ff9f0a; }
+        .dot.has-habit { border: 2px solid var(--habit-color); }
+        .dot.completed { background-color: var(--active-dot); }
+
+        /* Modal styling */
+        #todo-modal {
+            display: none;
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(28, 28, 30, 0.95);
+            backdrop-filter: blur(20px);
+            border-radius: 20px 20px 0 0;
+            padding: 30px;
+            z-index: 100;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="text-center w-full mb-8">
+        <p id="ios-date" class="font-semibold opacity-80 text-lg uppercase tracking-widest">Friday, Jan 16</p>
+        <h1 id="ios-time" class="ios-clock">20:10</h1>
+        <div class="mt-2 text-sm font-medium opacity-60">
+            YEAR PROGRESS: <span id="year-percent" class="text-orange-500">0%</span>
+        </div>
+    </div>
+
+    <div class="calendar-container" id="master-grid">
+        </div>
+
+    <div id="todo-modal">
+        <div class="flex justify-between items-center mb-6">
+            <h2 id="modal-date-title" class="text-xl font-bold">Jan 16, 2026</h2>
+            <button onclick="closeModal()" class="text-gray-400">Done</button>
+        </div>
+        
+        <label class="block text-xs opacity-50 mb-2 uppercase">Daily Goal / To-Do</label>
+        <textarea id="todo-input" class="w-full bg-white/10 rounded-xl p-4 mb-6 focus:outline-none" rows="3" placeholder="What's the focus for today?"></textarea>
+        
+        <div class="flex items-center justify-between bg-white/10 p-4 rounded-xl">
+            <span>Habit Completed?</span>
+            <input type="checkbox" id="habit-check" class="w-6 h-6 accent-green-500">
+        </div>
+        <button onclick="saveData()" class="w-full mt-6 bg-white text-black py-4 rounded-2xl font-bold">Save Progress</button>
+    </div>
+
+    <script>
+        let selectedDateKey = "";
+        const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+        const daysInMonth = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+
+        function init() {
+            updateClock();
+            renderGrid();
+            setInterval(updateClock, 1000);
+        }
+
+        function updateClock() {
+            const now = new Date();
+            document.getElementById('ios-time').textContent = now.getHours() + ":" + now.getMinutes().toString().padStart(2, '0');
+            
+            // Year Progress calculation
+            const start = new Date(now.getFullYear(), 0, 0);
+            const diff = now - start;
+            const oneDay = 1000 * 60 * 60 * 24;
+            const dayOfYear = Math.floor(diff / oneDay);
+            const percent = ((dayOfYear / 365) * 100).toFixed(1);
+            document.getElementById('year-percent').textContent = percent + "%";
+        }
+
+        function renderGrid() {
+            const container = document.getElementById('master-grid');
+            const today = new Date();
+            const currentMonth = today.getMonth();
+            const currentDate = today.getDate();
+
+            months.forEach((month, index) => {
+                const section = document.createElement('div');
+                section.className = 'month-section';
+                
+                const label = document.createElement('div');
+                label.className = 'month-label';
+                label.textContent = month;
+                section.appendChild(label);
+
+                const grid = document.createElement('div');
+                grid.className = 'dot-grid';
+
+                for (let d = 1; d <= daysInMonth[index]; d++) {
+                    const dot = document.createElement('div');
+                    const dateKey = `${index}-${d}`;
+                    dot.className = 'dot';
+                    
+                    // Style logic
+                    if (index < currentMonth || (index === currentMonth && d < currentDate)) {
+                        dot.classList.add('completed');
+                    }
+                    if (index === currentMonth && d === currentDate) {
+                        dot.classList.add('today');
+                    }
+
+                    // Check local storage for habits
+                    const saved = JSON.parse(localStorage.getItem(dateKey) || "{}");
+                    if (saved.habit) dot.classList.add('has-habit');
+
+                    dot.onclick = () => openModal(month, d, dateKey);
+                    grid.appendChild(dot);
+                }
+                section.appendChild(grid);
+                container.appendChild(section);
+            });
+        }
+
+        function openModal(month, day, key) {
+            selectedDateKey = key;
+            document.getElementById('modal-date-title').textContent = `${month} ${day}, 2026`;
+            const saved = JSON.parse(localStorage.getItem(key) || "{}");
+            document.getElementById('todo-input').value = saved.todo || "";
+            document.getElementById('habit-check').checked = saved.habit || false;
+            document.getElementById('todo-modal').style.display = 'block';
+        }
+
+        function closeModal() {
+            document.getElementById('todo-modal').style.display = 'none';
+        }
+
+        function saveData() {
+            const data = {
+                todo: document.getElementById('todo-input').value,
+                habit: document.getElementById('habit-check').checked
+            };
+            localStorage.setItem(selectedDateKey, JSON.stringify(data));
+            location.reload(); // Refresh to show the green ring/habit
+        }
+
+        init();
+    </script>
+</body>
+</html>
