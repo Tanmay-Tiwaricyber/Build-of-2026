@@ -16,6 +16,7 @@
             --active-dot: #ffffff;
             --habit-color: #34c759;
             --accent-blue: #0a84ff;
+            --ios-gray: #2c2c2e;
         }
 
         @media (prefers-color-scheme: light) {
@@ -25,6 +26,7 @@
                 --text-color: #000000;
                 --dot-color: #d1d1d6;
                 --active-dot: #000000;
+                --ios-gray: #e5e5ea;
             }
         }
 
@@ -60,7 +62,19 @@
         }
 
         .month-section { display: flex; flex-direction: column; align-items: center; gap: 8px; }
-        .month-label { font-size: 0.6rem; font-weight: 700; opacity: 0.5; text-transform: uppercase; }
+        
+        .month-label { 
+            font-size: 0.7rem; 
+            font-weight: 800; 
+            opacity: 0.5; 
+            text-transform: uppercase; 
+            cursor: pointer;
+            padding: 4px 8px;
+            border-radius: 6px;
+            transition: 0.2s;
+        }
+        .month-label:hover { background: var(--ios-gray); opacity: 1; color: var(--accent-blue); }
+
         .dot-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
 
         .dot {
@@ -77,13 +91,10 @@
         .dot.completed { background-color: var(--active-dot); }
 
         /* Modal / Sheet Styling */
-        #todo-modal {
+        .ios-modal {
             display: none;
             position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            top: 10%;
+            bottom: 0; left: 0; right: 0; top: 10%;
             background: var(--card-bg);
             backdrop-filter: blur(30px);
             border-radius: 30px 30px 0 0;
@@ -93,7 +104,22 @@
             overflow-y: auto;
         }
 
-        /* Segmented Control */
+        /* Grouped List Style */
+        .grouped-list {
+            background: var(--ios-gray);
+            border-radius: 12px;
+            margin-bottom: 20px;
+            overflow: hidden;
+        }
+        .list-row {
+            padding: 12px 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 0.5px solid rgba(142,142,147,0.2);
+        }
+        .list-row:last-child { border-bottom: none; }
+
         .tab-bar {
             background: rgba(120, 120, 128, 0.2);
             border-radius: 10px;
@@ -101,34 +127,14 @@
             display: flex;
             margin-bottom: 25px;
         }
-
-        .tab-btn {
-            flex: 1;
-            padding: 8px;
-            border-radius: 8px;
-            font-size: 0.9rem;
-            font-weight: 600;
-            transition: 0.2s;
-        }
-
-        .tab-btn.active {
-            background: #636366;
-            color: white;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-        }
+        .tab-btn { flex: 1; padding: 8px; border-radius: 8px; font-size: 0.9rem; font-weight: 600; }
+        .tab-btn.active { background: #636366; color: white; }
 
         .input-group {
             background: rgba(120, 120, 128, 0.15);
             border-radius: 15px;
             padding: 15px;
             margin-bottom: 20px;
-        }
-
-        .expense-item {
-            display: flex;
-            justify-content: space-between;
-            padding: 10px 0;
-            border-bottom: 1px solid rgba(255,255,255,0.1);
         }
 
         .hidden { display: none; }
@@ -146,10 +152,10 @@
 
     <div class="calendar-container" id="master-grid"></div>
 
-    <div id="todo-modal">
+    <div id="todo-modal" class="ios-modal">
         <div class="flex justify-between items-center mb-6">
-            <h2 id="modal-date-title" class="text-2xl font-bold">Jan 16, 2026</h2>
-            <button onclick="closeModal()" class="bg-white/10 px-4 py-2 rounded-full text-sm font-bold">Close</button>
+            <h2 id="modal-date-title" class="text-2xl font-bold">Jan 16</h2>
+            <button onclick="closeModal('todo-modal')" class="text-blue-500 font-bold">Done</button>
         </div>
 
         <div class="tab-bar">
@@ -160,18 +166,16 @@
         <div id="section-tasks">
             <div class="input-group">
                 <label class="text-xs opacity-50 uppercase font-bold mb-2 block">Daily Objective</label>
-                <textarea id="todo-input" class="w-full bg-transparent text-lg focus:outline-none" rows="2" placeholder="Tap to add task..."></textarea>
+                <textarea id="todo-input" class="w-full bg-transparent text-lg focus:outline-none" rows="2" placeholder="What's the goal?"></textarea>
             </div>
-            
             <div class="input-group flex items-center justify-between">
-                <span class="font-medium">Daily Habit Completed</span>
+                <span class="font-medium">Habit Completed</span>
                 <input type="checkbox" id="habit-check" class="w-6 h-6 accent-green-500">
             </div>
         </div>
 
         <div id="section-finance" class="hidden">
             <div class="input-group">
-                <label class="text-xs opacity-50 uppercase font-bold mb-2 block">Add Expense</label>
                 <div class="flex gap-2 mb-3">
                     <select id="currency-select" class="bg-white/10 rounded-lg p-2 outline-none">
                         <option value="$">$ USD</option>
@@ -179,57 +183,64 @@
                     </select>
                     <input type="number" id="exp-amount" class="flex-1 bg-white/10 rounded-lg p-2 outline-none" placeholder="Amount">
                 </div>
-                <input type="text" id="exp-note" class="w-full bg-white/10 rounded-lg p-2 outline-none" placeholder="What was it for?">
-                <button onclick="addExpenseItem()" class="w-full mt-3 bg-blue-600 py-2 rounded-lg font-bold text-sm">Add to Log</button>
+                <input type="text" id="exp-note" class="w-full bg-white/10 rounded-lg p-2 outline-none" placeholder="Note">
+                <button onclick="addExpenseItem()" class="w-full mt-3 bg-blue-600 py-2 rounded-lg font-bold text-sm">Add Expense</button>
             </div>
+            <div id="expense-list" class="mt-4"></div>
+        </div>
+        <button onclick="saveData()" class="w-full mt-8 bg-white text-black py-4 rounded-2xl font-bold">Save Day</button>
+    </div>
 
-            <div id="expense-list" class="mt-4">
-                </div>
+    <div id="month-modal" class="ios-modal">
+        <div class="flex justify-between items-center mb-6">
+            <h2 id="month-modal-title" class="text-3xl font-bold">January</h2>
+            <button onclick="closeModal('month-modal')" class="text-blue-500 font-bold">Close</button>
         </div>
 
-        <button onclick="saveData()" class="w-full mt-8 bg-white text-black py-4 rounded-2xl font-bold shadow-lg active:scale-95 transition-transform">Save Day</button>
+        <label class="text-xs opacity-50 uppercase font-bold mb-3 block">Financial Summary</label>
+        <div class="grouped-list">
+            <div class="list-row">
+                <span>Total USD Spent</span>
+                <span id="total-usd" class="font-bold text-blue-500">$0.00</span>
+            </div>
+            <div class="list-row">
+                <span>Total INR Spent</span>
+                <span id="total-inr" class="font-bold text-orange-500">₹0.00</span>
+            </div>
+        </div>
+
+        <label class="text-xs opacity-50 uppercase font-bold mb-3 block">Task History</label>
+        <div id="month-tasks-list" class="grouped-list">
+            </div>
     </div>
 
     <script>
         let selectedDateKey = "";
         let currentExpenses = [];
-        const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+        const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
         const daysInMonth = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
 
         function init() {
             updateClock();
             renderGrid();
             setInterval(updateClock, 1000);
-            
             const now = new Date();
-            const options = { weekday: 'long', month: 'short', day: 'numeric' };
-            document.getElementById('ios-date').textContent = now.toLocaleDateString('en-US', options);
-        }
-
-        function updateClock() {
-            const now = new Date();
-            document.getElementById('ios-time').textContent = now.getHours().toString().padStart(2, '0') + ":" + now.getMinutes().toString().padStart(2, '0');
-            
-            const start = new Date(now.getFullYear(), 0, 0);
-            const diff = now - start;
-            const oneDay = 1000 * 60 * 60 * 24;
-            const dayOfYear = Math.floor(diff / oneDay);
-            const percent = ((dayOfYear / 365) * 100).toFixed(1);
-            document.getElementById('year-percent').textContent = percent + "%";
+            document.getElementById('ios-date').textContent = now.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
         }
 
         function renderGrid() {
             const container = document.getElementById('master-grid');
             container.innerHTML = '';
             const today = new Date();
-            const currentMonth = today.getMonth();
-            const currentDate = today.getDate();
 
             months.forEach((month, index) => {
                 const section = document.createElement('div');
                 section.className = 'month-section';
+                
                 const label = document.createElement('div');
-                label.className = 'month-label'; label.textContent = month;
+                label.className = 'month-label';
+                label.textContent = month.substring(0, 3);
+                label.onclick = () => openMonthSummary(index); // NEW: Monthly Summary Trigger
                 section.appendChild(label);
 
                 const grid = document.createElement('div');
@@ -239,13 +250,10 @@
                     const dot = document.createElement('div');
                     const dateKey = `${index}-${d}`;
                     dot.className = 'dot';
-                    
-                    if (index < currentMonth || (index === currentMonth && d < currentDate)) dot.classList.add('completed');
-                    if (index === currentMonth && d === currentDate) dot.classList.add('today');
-
+                    if (index < today.getMonth() || (index === today.getMonth() && d < today.getDate())) dot.classList.add('completed');
+                    if (index === today.getMonth() && d === today.getDate()) dot.classList.add('today');
                     const saved = JSON.parse(localStorage.getItem(dateKey) || "{}");
                     if (saved.todo || (saved.expenses && saved.expenses.length > 0)) dot.classList.add('has-data');
-
                     dot.onclick = () => openModal(month, d, dateKey);
                     grid.appendChild(dot);
                 }
@@ -254,12 +262,45 @@
             });
         }
 
+        function openMonthSummary(monthIndex) {
+            document.getElementById('month-modal-title').textContent = months[monthIndex];
+            let usdTotal = 0;
+            let inrTotal = 0;
+            let taskHtml = '';
+
+            for (let d = 1; d <= daysInMonth[monthIndex]; d++) {
+                const data = JSON.parse(localStorage.getItem(`${monthIndex}-${d}`) || "{}");
+                
+                // Aggregate Expenses
+                if (data.expenses) {
+                    data.expenses.forEach(ex => {
+                        if (ex.curr === '$') usdTotal += parseFloat(ex.amt);
+                        if (ex.curr === '₹') inrTotal += parseFloat(ex.amt);
+                    });
+                }
+
+                // Aggregate Tasks
+                if (data.todo) {
+                    taskHtml += `<div class="list-row">
+                        <span class="opacity-40 text-xs w-8">${d}</span>
+                        <span class="flex-1">${data.todo}</span>
+                        ${data.habit ? '<span>✅</span>' : ''}
+                    </div>`;
+                }
+            }
+
+            document.getElementById('total-usd').textContent = `$${usdTotal.toFixed(2)}`;
+            document.getElementById('total-inr').textContent = `₹${inrTotal.toLocaleString()}`;
+            document.getElementById('month-tasks-list').innerHTML = taskHtml || '<div class="list-row opacity-30">No tasks recorded</div>';
+            
+            document.getElementById('month-modal').style.display = 'block';
+        }
+
         function switchTab(tab) {
             const btns = document.querySelectorAll('.tab-btn');
             btns.forEach(b => b.classList.remove('active'));
             document.getElementById('section-tasks').classList.add('hidden');
             document.getElementById('section-finance').classList.add('hidden');
-
             if(tab === 'tasks') {
                 btns[0].classList.add('active');
                 document.getElementById('section-tasks').classList.remove('hidden');
@@ -271,13 +312,11 @@
 
         function openModal(month, day, key) {
             selectedDateKey = key;
-            document.getElementById('modal-date-title').textContent = `${month} ${day}, 2026`;
+            document.getElementById('modal-date-title').textContent = `${month.substring(0,3)} ${day}`;
             const saved = JSON.parse(localStorage.getItem(key) || "{}");
-            
             document.getElementById('todo-input').value = saved.todo || "";
             document.getElementById('habit-check').checked = saved.habit || false;
             currentExpenses = saved.expenses || [];
-            
             renderExpenses();
             document.getElementById('todo-modal').style.display = 'block';
         }
@@ -286,9 +325,7 @@
             const amt = document.getElementById('exp-amount').value;
             const note = document.getElementById('exp-note').value;
             const curr = document.getElementById('currency-select').value;
-
             if(!amt || !note) return;
-
             currentExpenses.push({ amt, note, curr });
             document.getElementById('exp-amount').value = '';
             document.getElementById('exp-note').value = '';
@@ -298,17 +335,15 @@
         function renderExpenses() {
             const list = document.getElementById('expense-list');
             list.innerHTML = '<label class="text-xs opacity-50 uppercase font-bold mb-2 block">Logged Today</label>';
-            currentExpenses.forEach((item, index) => {
+            currentExpenses.forEach((item) => {
                 const div = document.createElement('div');
-                div.className = 'expense-item';
+                div.className = 'flex justify-between py-2 border-b border-white/10';
                 div.innerHTML = `<span>${item.note}</span><span class="font-bold text-orange-400">${item.curr}${item.amt}</span>`;
                 list.appendChild(div);
             });
         }
 
-        function closeModal() {
-            document.getElementById('todo-modal').style.display = 'none';
-        }
+        function closeModal(id) { document.getElementById(id).style.display = 'none'; }
 
         function saveData() {
             const data = {
@@ -318,7 +353,18 @@
             };
             localStorage.setItem(selectedDateKey, JSON.stringify(data));
             renderGrid();
-            closeModal();
+            closeModal('todo-modal');
+        }
+
+        function updateClock() {
+            const now = new Date();
+            document.getElementById('ios-time').textContent = now.getHours().toString().padStart(2, '0') + ":" + now.getMinutes().toString().padStart(2, '0');
+            const start = new Date(now.getFullYear(), 0, 0);
+            const diff = now - start;
+            const oneDay = 1000 * 60 * 60 * 24;
+            const dayOfYear = Math.floor(diff / oneDay);
+            const percent = ((dayOfYear / 365) * 100).toFixed(1);
+            document.getElementById('year-percent').textContent = percent + "%";
         }
 
         init();
