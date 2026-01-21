@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Syllabus Mapper | Void Chronos Responsive</title>
+    <style>
+        :root {
+            --bg: #000000;
+            --fg: #ffffff;
+            --border: 2px solid #ffffff;
+            --font-mono: 'JetBrains Mono', 'Courier New', monospace;
+            --font-sans: 'Inter', -apple-system, sans-serif;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        
+        body {
+            background-color: var(--bg);
+            color: var(--fg);
+            font-family: var(--font-sans);
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            min-height: 100vh;
+        }
+
+        .container { width: 100%; max-width: 800px; }
+
+        /* HEADER */
+        header {
+            border-bottom: var(--border);
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        @media (min-width: 600px) {
+            header { flex-direction: row; justify-content: space-between; align-items: flex-end; }
+        }
+
+        h1 { font-size: calc(1.5rem + 1vw); font-weight: 900; letter-spacing: -2px; text-transform: uppercase; line-height: 1; }
+        
+        .stats { font-family: var(--font-mono); font-size: 0.75rem; line-height: 1.6; }
+        .focus-toggle { cursor: pointer; text-decoration: underline; text-transform: uppercase; font-weight: bold; font-size: 0.8rem; }
+        .focus-toggle.active { background: var(--fg); color: var(--bg); padding: 2px 5px; text-decoration: none; }
+
+        /* INPUTS */
+        .master-input {
+            display: flex;
+            border: var(--border);
+            margin-bottom: 30px;
+        }
+
+        input {
+            flex: 1;
+            background: transparent;
+            border: none;
+            color: var(--fg);
+            padding: 12px;
+            font-family: var(--font-mono);
+            outline: none;
+            text-transform: uppercase;
+            width: 100%;
+            font-size: 0.9rem;
+        }
+
+        button.btn-add {
+            background: var(--fg);
+            color: var(--bg);
+            border: none;
+            padding: 0 20px;
+            font-family: var(--font-mono);
+            font-weight: 900;
+            cursor: pointer;
+            text-transform: uppercase;
+            white-space: nowrap;
+        }
+
+        /* SUBJECTS */
+        .subject-card { border: var(--border); margin-bottom: 30px; background: var(--bg); }
+        .subject-header {
+            background: var(--fg);
+            color: var(--bg);
+            padding: 10px 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: 900;
+            text-transform: uppercase;
+            font-size: 0.8rem;
+        }
+
+        /* TOPICS - RESPONSIVE GRID */
+        .topic-row {
+            display: grid;
+            grid-template-columns: 30px 1fr 40px;
+            grid-template-areas: 
+                "check text del"
+                "null meta meta";
+            align-items: center;
+            border-bottom: 1px solid var(--fg);
+            padding: 12px 15px;
+            gap: 10px;
+        }
+
+        @media (min-width: 650px) {
+            .topic-row {
+                grid-template-columns: 30px 1fr 110px 90px 30px;
+                grid-template-areas: "check text timer status del";
+                gap: 15px;
+            }
+        }
+
+        .topic-row.hidden { display: none; }
+
+        .checkbox { grid-area: check; width: 20px; height: 20px; border: 1px solid var(--fg); cursor: pointer; display: flex; align-items: center; justify-content: center; }
+        .checkbox.checked { background: var(--fg); color: var(--bg); }
+        .checkbox.checked::after { content: '✕'; font-size: 10px; font-weight: 900; }
+
+        .topic-text { grid-area: text; font-family: var(--font-mono); font-size: 0.85rem; word-break: break-word; }
+        .topic-text.done { opacity: 0.3; text-decoration: line-through; }
+
+        /* Wrapper for mobile meta data */
+        .topic-meta {
+            grid-area: meta;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            margin-top: 5px;
+        }
+
+        @media (min-width: 650px) {
+            .topic-meta { display: contents; }
+        }
+
+        .timer-display { grid-area: timer; font-family: var(--font-mono); font-size: 0.7rem; cursor: pointer; border: 1px solid transparent; padding: 2px 5px; white-space: nowrap; }
+        .timer-display.running { border-color: var(--fg); animation: blink 2s infinite; }
+
+        .status-tag {
+            grid-area: status;
+            font-family: var(--font-mono);
+            font-size: 0.6rem;
+            padding: 2px 5px;
+            border: 1px solid var(--fg);
+            cursor: pointer;
+            text-align: center;
+            text-transform: uppercase;
+            min-width: 65px;
+        }
+        .status-weak { border-style: dashed; }
+        .status-strong { background: var(--fg); color: var(--bg); }
+
+        .del-btn { grid-area: del; background: transparent; color: var(--fg); font-size: 1rem; border: none; cursor: pointer; text-align: right; }
+
+        @keyframes blink { 50% { opacity: 0.4; } }
+
+        .add-inline { border-top: var(--border); display: flex; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <div>
+            <h1>VOID_CHRONOS.</h1>
+            <div class="stats" style="margin-top: 5px;">
+                <span id="global-pc">0%</span> COMPLETE | <span id="global-time">00:00:00</span> TOTAL
+            </div>
+        </div>
+        <div class="stats">
+            <span class="focus-toggle" id="focus-btn" onclick="toggleFocusMode()">FOCUS: OFF</span>
+        </div>
+    </header>
+
+    <div class="master-input">
+        <input type="text" id="subject-in" placeholder="NEW SUBJECT TITLE...">
+        <button class="btn-add" onclick="addSubject()">CREATE</button>
+    </div>
+
+    <div id="root"></div>
+</div>
+
+<script>
+    let syllabus = JSON.parse(localStorage.getItem('void_chronos_v2')) || [];
+    let focusMode = false;
+    let activeTimer = null;
+
+    setInterval(() => {
+        if (activeTimer) {
+            const sub = syllabus.find(s => s.id === activeTimer.subId);
+            const top = sub.topics.find(t => t.id === activeTimer.topId);
+            top.timeSpent++;
+            render();
+            if (top.timeSpent % 5 === 0) saveToStorage();
+        }
+    }, 1000);
+
+    function saveToStorage() { localStorage.setItem('void_chronos_v2', JSON.stringify(syllabus)); }
+    function saveAndRender() { saveToStorage(); render(); }
+
+    function addSubject() {
+        const input = document.getElementById('subject-in');
+        if (!input.value.trim()) return;
+        syllabus.push({ id: Date.now(), title: input.value, topics: [] });
+        input.value = '';
+        saveAndRender();
+    }
+
+    function addTopic(subId) {
+        const input = document.getElementById(`in-${subId}`);
+        if (!input.value.trim()) return;
+        const sub = syllabus.find(s => s.id === subId);
+        sub.topics.push({ id: Date.now(), text: input.value, done: false, status: 'neutral', timeSpent: 0 });
+        input.value = '';
+        saveAndRender();
+    }
+
+    function toggleTimer(subId, topId) {
+        if (activeTimer && activeTimer.subId === subId && activeTimer.topId === topId) {
+            activeTimer = null;
+        } else {
+            activeTimer = { subId, topId };
+        }
+        render();
+    }
+
+    function formatTime(totalSeconds) {
+        const hrs = Math.floor(totalSeconds / 3600).toString().padStart(2, '0');
+        const mins = Math.floor((totalSeconds % 3600) / 60).toString().padStart(2, '0');
+        const secs = (totalSeconds % 60).toString().padStart(2, '0');
+        return `${hrs}:${mins}:${secs}`;
+    }
+
+    function cycleStatus(subId, topId) {
+        const sub = syllabus.find(s => s.id === subId);
+        const top = sub.topics.find(t => t.id === topId);
+        const states = ['neutral', 'weak', 'strong'];
+        top.status = states[(states.indexOf(top.status) + 1) % 3];
+        saveAndRender();
+    }
+
+    function toggleDone(subId, topId) {
+        const sub = syllabus.find(s => s.id === subId);
+        const top = sub.topics.find(t => t.id === topId);
+        top.done = !top.done;
+        saveAndRender();
+    }
+
+    function deleteTopic(subId, topId) {
+        const sub = syllabus.find(s => s.id === subId);
+        sub.topics = sub.topics.filter(t => t.id !== topId);
+        if (activeTimer && activeTimer.topId === topId) activeTimer = null;
+        saveAndRender();
+    }
+
+    function deleteSubject(id) {
+        syllabus = syllabus.filter(s => s.id !== id);
+        if (activeTimer && activeTimer.subId === id) activeTimer = null;
+        saveAndRender();
+    }
+
+    function toggleFocusMode() {
+        focusMode = !focusMode;
+        const btn = document.getElementById('focus-btn');
+        btn.innerText = `FOCUS: ${focusMode ? 'ON' : 'OFF'}`;
+        btn.classList.toggle('active');
+        render();
+    }
+
+    function render() {
+        const root = document.getElementById('root');
+        root.innerHTML = '';
+        let totalCount = 0, doneCount = 0, totalSeconds = 0;
+
+        syllabus.forEach(sub => {
+            const hasWeak = sub.topics.some(t => t.status === 'weak');
+            if (focusMode && !hasWeak) return;
+
+            const card = document.createElement('div');
+            card.className = 'subject-card';
+
+            const topicsHTML = sub.topics.map(t => {
+                totalCount++;
+                if (t.done) doneCount++;
+                totalSeconds += t.timeSpent;
+                const isRunning = activeTimer && activeTimer.topId === t.id;
+                const isHidden = focusMode && t.status !== 'weak';
+
+                return `
+                    <div class="topic-row ${isHidden ? 'hidden' : ''}">
+                        <div class="checkbox ${t.done ? 'checked' : ''}" onclick="toggleDone(${sub.id}, ${t.id})"></div>
+                        <span class="topic-text ${t.done ? 'done' : ''}">${t.text}</span>
+                        <div class="topic-meta">
+                            <div class="timer-display ${isRunning ? 'running' : ''}" onclick="toggleTimer(${sub.id}, ${t.id})">
+                                ${isRunning ? '●' : '○'} ${formatTime(t.timeSpent)}
+                            </div>
+                            <div class="status-tag status-${t.status}" onclick="cycleStatus(${sub.id}, ${t.id})">${t.status}</div>
+                        </div>
+                        <button class="del-btn" onclick="deleteTopic(${sub.id}, ${t.id})">✕</button>
+                    </div>
+                `;
+            }).join('');
+
+            card.innerHTML = `
+                <div class="subject-header">
+                    <span>${sub.title}</span>
+                    <button onclick="deleteSubject(${sub.id})" style="background:transparent; color:inherit; font-size:9px; cursor:pointer; border:none;">[DEL]</button>
+                </div>
+                <div>${topicsHTML}</div>
+                <div class="add-inline" style="${focusMode ? 'display:none' : ''}">
+                    <input type="text" id="in-${sub.id}" placeholder="NEW TOPIC...">
+                    <button class="btn-add" onclick="addTopic(${sub.id})">+</button>
+                </div>
+            `;
+            root.appendChild(card);
+        });
+
+        document.getElementById('global-pc').innerText = `${totalCount === 0 ? 0 : Math.round((doneCount/totalCount)*100)}%`;
+        document.getElementById('global-time').innerText = formatTime(totalSeconds);
+    }
+
+    render();
+</script>
+
+</body>
+</html>
