@@ -3,9 +3,15 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>AR Drawing Projector</title>
+<title>AR Sketch Projector</title>
 
 <style>
+:root {
+  --glass: rgba(20,20,20,.65);
+  --border: rgba(255,255,255,.15);
+  --accent: #4cffc0;
+}
+
 * {
   margin: 0;
   padding: 0;
@@ -15,20 +21,22 @@
 body {
   background: black;
   overflow: hidden;
-  font-family: system-ui;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont;
 }
 
+/* Camera */
 #camera {
   position: fixed;
-  width: 100vw;
-  height: 100vh;
+  inset: 0;
+  width: 100%;
+  height: 100%;
   object-fit: cover;
 }
 
+/* Overlay */
 #overlay-container {
   position: fixed;
-  width: 100%;
-  height: 100%;
+  inset: 0;
   pointer-events: none;
 }
 
@@ -36,56 +44,115 @@ body {
   position: absolute;
   top: 50%;
   left: 50%;
-  transform: translate(-50%, -50%);
-  max-width: 60%;
-  opacity: 0.6;
+  transform-origin: center;
+  max-width: 70vw;
+  opacity: .6;
   pointer-events: auto;
   touch-action: none;
   cursor: grab;
+  user-select: none;
 }
 
+/* Toolbar */
+.toolbar {
+  position: fixed;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 10px;
+  padding: 10px 14px;
+  background: var(--glass);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  backdrop-filter: blur(12px);
+  z-index: 10;
+}
+
+.toolbar button,
+.toolbar input[type=file] {
+  background: transparent;
+  color: white;
+  border: 1px solid var(--border);
+  padding: 8px 12px;
+  border-radius: 12px;
+  cursor: pointer;
+}
+
+.toolbar button:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+/* Bottom Controls */
 .controls {
   position: fixed;
-  bottom: 15px;
-  width: 100%;
+  bottom: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(95%, 420px);
   display: flex;
-  justify-content: center;
-  gap: 10px;
   flex-wrap: wrap;
+  gap: 10px;
+  padding: 14px;
+  background: var(--glass);
+  border-radius: 20px;
+  border: 1px solid var(--border);
+  backdrop-filter: blur(12px);
 }
 
-.controls button,
-.controls input {
-  background: rgba(0,0,0,0.7);
+.controls label {
+  color: #aaa;
+  font-size: 13px;
+}
+
+.controls input[type=range] {
+  flex: 1;
+}
+
+.controls button {
+  background: transparent;
   color: white;
-  border: 1px solid #444;
-  padding: 10px 14px;
-  border-radius: 10px;
+  border: 1px solid var(--border);
+  padding: 8px 14px;
+  border-radius: 12px;
+  cursor: pointer;
 }
 
-.controls input[type="range"] {
-  width: 120px;
+.controls button:hover {
+  border-color: var(--accent);
+}
+
+/* Mobile */
+@media(max-width:600px) {
+  .toolbar {
+    width: 95%;
+    justify-content: space-between;
+  }
 }
 </style>
 </head>
 
 <body>
 
-<!-- Camera -->
 <video id="camera" autoplay playsinline></video>
 
-<!-- Image Overlay -->
 <div id="overlay-container">
-  <img id="overlay-img"/>
+  <img id="overlay-img">
 </div>
 
-<!-- Controls -->
+<!-- TOP BAR -->
+<div class="toolbar">
+  <input type="file" id="upload" accept="image/*">
+  <button id="lock">Lock</button>
+</div>
+
+<!-- BOTTOM PANEL -->
 <div class="controls">
-  <input type="file" id="upload" accept="image/*" />
   <label>Opacity</label>
   <input type="range" min="0.1" max="1" step="0.05" value="0.6" id="opacity">
   <button id="rotate">Rotate</button>
-  <button id="lock">Lock</button>
+  <button id="reset">Reset</button>
 </div>
 
 <script>
@@ -96,31 +163,32 @@ const upload = document.getElementById("upload");
 const opacity = document.getElementById("opacity");
 const rotateBtn = document.getElementById("rotate");
 const lockBtn = document.getElementById("lock");
+const resetBtn = document.getElementById("reset");
 
 let scale = 1;
 let rotation = 0;
 let locked = false;
+let posX = innerWidth/2;
+let posY = innerHeight/2;
 
 // Camera
 navigator.mediaDevices.getUserMedia({
   video: { facingMode: "environment" }
-})
-.then(stream => video.srcObject = stream);
+}).then(s => video.srcObject = s);
 
-// Upload image
+// Upload
 upload.onchange = e => {
   const file = e.target.files[0];
-  if (!file) return;
   overlay.src = URL.createObjectURL(file);
 };
 
 // Opacity
 opacity.oninput = e => overlay.style.opacity = e.target.value;
 
-// Rotate
+// Rotate button
 rotateBtn.onclick = () => {
   rotation += 10;
-  updateTransform();
+  update();
 };
 
 // Lock
@@ -130,40 +198,86 @@ lockBtn.onclick = () => {
   lockBtn.textContent = locked ? "Unlock" : "Lock";
 };
 
-// Dragging
-let isDragging = false;
-let startX, startY;
-let currentX = window.innerWidth/2;
-let currentY = window.innerHeight/2;
+// Reset
+resetBtn.onclick = () => {
+  scale = 1;
+  rotation = 0;
+  posX = innerWidth/2;
+  posY = innerHeight/2;
+  update();
+};
+
+// Update transform
+function update() {
+  overlay.style.transform =
+   `translate(${posX}px,${posY}px) translate(-50%,-50%) scale(${scale}) rotate(${rotation}deg)`;
+}
+
+// =====================
+// TOUCH + DRAG SUPPORT
+// =====================
+
+let pointers = new Map();
+let startDist = 0;
+let startScale = 1;
+let startAngle = 0;
+let startRotation = 0;
 
 overlay.addEventListener("pointerdown", e => {
   if (locked) return;
-  isDragging = true;
-  startX = e.clientX - currentX;
-  startY = e.clientY - currentY;
+  pointers.set(e.pointerId, e);
   overlay.setPointerCapture(e.pointerId);
 });
 
-window.addEventListener("pointermove", e => {
-  if (!isDragging) return;
-  currentX = e.clientX - startX;
-  currentY = e.clientY - startY;
-  updateTransform();
+overlay.addEventListener("pointermove", e => {
+  if (!pointers.has(e.pointerId) || locked) return;
+
+  pointers.set(e.pointerId, e);
+
+  if (pointers.size === 1) {
+    // drag
+    const p = [...pointers.values()][0];
+    posX += e.movementX;
+    posY += e.movementY;
+    update();
+  }
+
+  if (pointers.size === 2) {
+    const [a,b] = [...pointers.values()];
+
+    const dx = b.clientX - a.clientX;
+    const dy = b.clientY - a.clientY;
+
+    const dist = Math.hypot(dx,dy);
+    const angle = Math.atan2(dy,dx) * 180/Math.PI;
+
+    if (!startDist) {
+      startDist = dist;
+      startScale = scale;
+      startAngle = angle;
+      startRotation = rotation;
+    } else {
+      scale = startScale * (dist / startDist);
+      rotation = startRotation + (angle - startAngle);
+      update();
+    }
+  }
 });
 
-window.addEventListener("pointerup", () => isDragging = false);
+overlay.addEventListener("pointerup", resetPointers);
+overlay.addEventListener("pointercancel", resetPointers);
 
-// Zoom with wheel
-window.addEventListener("wheel", e => {
-  scale += e.deltaY * -0.001;
-  scale = Math.min(Math.max(0.1, scale), 5);
-  updateTransform();
-});
-
-function updateTransform() {
-  overlay.style.transform =
-    `translate(${currentX}px, ${currentY}px) scale(${scale}) rotate(${rotation}deg)`;
+function resetPointers(e){
+  pointers.delete(e.pointerId);
+  if (pointers.size < 2) startDist = 0;
 }
+
+// Mouse wheel zoom
+window.addEventListener("wheel", e=>{
+  scale += e.deltaY * -0.001;
+  scale = Math.min(Math.max(.1,scale),5);
+  update();
+});
 </script>
 
 </body>
