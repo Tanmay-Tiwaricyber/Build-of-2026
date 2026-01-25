@@ -1,303 +1,321 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
-<title>AR Sketch Pro</title>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+    <title>AR Sketch Pro | Studio</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #000000;
+            --surface: #111111;
+            --glass: rgba(15, 15, 15, 0.8);
+            --border: rgba(255, 255, 255, 0.1);
+            --accent: #ffffff;
+            --text-main: #ffffff;
+            --text-dim: #888888;
+            --radius: 16px;
+        }
 
-<link rel="manifest" href="manifest.json">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 
-<style>
-:root{
---glass:rgba(24,24,28,.72);
---border:rgba(255,255,255,.14);
---accent:#59ffd3;
---shadow:0 20px 50px rgba(0,0,0,.6);
-}
+        body {
+            height: 100vh;
+            background: var(--bg);
+            font-family: 'Inter', -apple-system, system-ui, sans-serif;
+            overflow: hidden;
+            color: var(--text-main);
+        }
 
-*{margin:0;padding:0;box-sizing:border-box;}
+        /* Camera Layer */
+        #camera {
+            position: fixed;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            z-index: 1;
+        }
 
-html,body{
-height:100%;
-background:black;
-font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display",Inter,system-ui;
-overflow:hidden;
-color:white;
-}
+        /* Overlay Rendering */
+        #layers {
+            position: fixed;
+            inset: 0;
+            z-index: 2;
+            pointer-events: none;
+        }
 
-/* CAMERA */
-video,canvas{
-position:fixed;
-inset:0;
-width:100%;
-height:100%;
-object-fit:cover;
-}
+        .layer {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            touch-action: none;
+            pointer-events: auto;
+            mix-blend-mode: screen; /* Makes white lines pop on dark backgrounds */
+            filter: grayscale(1) contrast(1.2);
+            transition: outline 0.2s ease;
+        }
 
-/* ================= SPLASH ================= */
-#splash{
-position:fixed;
-inset:0;
-background:radial-gradient(circle at top,#111,#000);
-display:flex;
-align-items:center;
-justify-content:center;
-z-index:99;
-animation:fadeSplash .8s ease forwards;
-animation-delay:2.2s;
-}
+        .layer.active { outline: 2px solid var(--accent); outline-offset: 4px; }
 
-@keyframes fadeSplash{
-to{opacity:0;pointer-events:none}
-}
+        /* Modern UI Panels */
+        .controls {
+            position: fixed;
+            z-index: 10;
+            display: flex;
+            gap: 12px;
+            padding: 12px;
+            backdrop-filter: blur(20px) saturate(180%);
+            -webkit-backdrop-filter: blur(20px) saturate(180%);
+            background: var(--glass);
+            border: 1px solid var(--border);
+            border-radius: 24px;
+        }
 
-#splashBox{
-text-align:center;
-}
+        /* Top Bar - Status & Main Tools */
+        .top-bar {
+            top: calc(env(safe-area-inset-top) + 15px);
+            left: 50%;
+            transform: translateX(-50%);
+            width: 90%;
+            max-width: 400px;
+            justify-content: space-between;
+            align-items: center;
+        }
 
-#splashBox h1{
-font-size:3.2rem;
-letter-spacing:-.02em;
-font-weight:700;
-}
+        /* Bottom Dock - Actions */
+        .dock {
+            bottom: calc(env(safe-area-inset-bottom) + 20px);
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 8px 20px;
+        }
 
-#splashBox p{
-opacity:.6;
-margin-top:6px;
-}
+        /* Responsive Sidebar for Desktop */
+        @media (min-width: 1024px) {
+            .top-bar {
+                top: 20px;
+                left: 20px;
+                transform: none;
+                flex-direction: column;
+                width: 64px;
+                height: auto;
+            }
+            .dock {
+                bottom: 20px;
+                left: 50%;
+                transform: translateX(-50%);
+            }
+        }
 
-/* ================= OVERLAY ================= */
-.layer{
-position:absolute;
-top:50%;
-left:50%;
-touch-action:none;
-pointer-events:auto;
-opacity:.75;
-filter:drop-shadow(0 8px 30px rgba(0,0,0,.6));
-}
+        /* Buttons & Icons */
+        .btn {
+            background: transparent;
+            border: none;
+            color: var(--text-main);
+            width: 44px;
+            height: 44px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
 
-/* ================= UI ================= */
+        .btn:hover { background: rgba(255,255,255,0.1); }
+        .btn:active { transform: scale(0.9); }
+        .btn.primary { background: var(--accent); color: var(--bg); }
+        .btn.active { color: #59ffd3; }
 
-.toolbar,.bottom{
-position:fixed;
-left:50%;
-transform:translateX(-50%);
-display:flex;
-gap:10px;
-padding:14px 18px;
-background:var(--glass);
-border:1px solid var(--border);
-border-radius:22px;
-backdrop-filter:blur(18px);
--webkit-backdrop-filter:blur(18px);
-box-shadow:var(--shadow);
-z-index:10;
-}
+        .btn svg { width: 22px; height: 22px; stroke-width: 2px; }
 
-/* Safe-area for iPhones */
-.toolbar{top:calc(env(safe-area-inset-top) + 14px);}
-.bottom{
-bottom:calc(env(safe-area-inset-bottom) + 14px);
-flex-wrap:wrap;
-width:min(94%,560px);
-justify-content:center;
-}
+        /* Hidden File Input */
+        #upload { display: none; }
 
-/* Buttons */
+        /* Splash Screen */
+        #splash {
+            position: fixed;
+            inset: 0;
+            background: #000;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+            transition: opacity 0.5s ease;
+        }
+        
+        .logo-mark {
+            width: 60px;
+            height: 60px;
+            border: 4px solid #fff;
+            margin-bottom: 20px;
+            transform: rotate(45deg);
+        }
 
-button,input[type=file]{
-background:rgba(255,255,255,.04);
-color:white;
-border:1px solid var(--border);
-padding:10px 18px;
-border-radius:16px;
-font-weight:500;
-letter-spacing:.2px;
-cursor:pointer;
-transition:.2s ease;
-}
-
-button:hover{
-border-color:var(--accent);
-color:var(--accent);
-box-shadow:0 0 14px rgba(90,255,210,.35);
-}
-
-button:active{
-transform:scale(.96);
-}
-
-input[type=file]{
-max-width:150px;
-}
-
-/* Mobile */
-@media(max-width:640px){
-.toolbar,.bottom{width:95%;}
-}
-
-/* ================= GUIDES ================= */
-#guide{
-position:fixed;
-inset:0;
-border:2px dashed rgba(255,255,255,.12);
-pointer-events:none;
-z-index:4;
-}
-</style>
+        /* Guide Grid */
+        #guide-grid {
+            position: fixed;
+            inset: 0;
+            border: 1px solid rgba(255,255,255,0.05);
+            background-image: linear-gradient(rgba(255,255,255,0.05) 1px, transparent 1px),
+                              linear-gradient(90deg, rgba(255,255,255,0.05) 1px, transparent 1px);
+            background-size: 50px 50px;
+            pointer-events: none;
+            display: none;
+            z-index: 3;
+        }
+    </style>
 </head>
-
 <body>
 
-<!-- SPLASH -->
 <div id="splash">
-  <div id="splashBox">
-    <h1>AR Sketch Pro</h1>
-    <p>by Silent Programmer</p>
-    <p>v2.1</p>
-  </div>
+    <div class="logo-mark"></div>
+    <h1 style="letter-spacing: 4px; font-weight: 300;">STUDIO AR</h1>
 </div>
 
 <video id="camera" autoplay playsinline></video>
-
+<div id="guide-grid"></div>
 <div id="layers"></div>
 
-<!-- TOP -->
-<div class="toolbar">
-  <input type="file" id="upload" accept="image/*">
-  <button id="addLayer">＋ Layer</button>
-  <button id="torch">🔦 Torch</button>
-  <button id="calibrate">📐 Calibrate</button>
+<div class="controls top-bar">
+    <button class="btn" onclick="document.getElementById('upload').click()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
+    </button>
+    <div style="font-size: 10px; font-weight: 600; color: var(--text-dim);">V 2.5</div>
+    <button class="btn" id="torchBtn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+    </button>
 </div>
 
-<!-- BOTTOM -->
-<div class="bottom">
-  <button id="warp">🪄 Warp</button>
-  <button id="guides">📏 Guides</button>
-  <button id="lock">🔒 Lock</button>
-  <button id="reset">↺ Reset</button>
+<div class="controls dock">
+    <button class="btn" id="lockBtn" title="Lock Layer">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+    </button>
+    <button class="btn" id="guideBtn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 3h18v18H3zM3 9h18M3 15h18M9 3v18M15 3v18"/></svg>
+    </button>
+    <button class="btn primary" id="resetBtn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+    </button>
 </div>
+
+<input type="file" id="upload" accept="image/*">
 
 <script>
-setTimeout(()=>splash.remove(),2600);
+    // Remove Splash
+    window.addEventListener('load', () => {
+        setTimeout(() => {
+            const s = document.getElementById('splash');
+            s.style.opacity = '0';
+            setTimeout(() => s.remove(), 500);
+        }, 1500);
+    });
 
-/* CAMERA */
-const video=document.getElementById("camera");
-let stream;
+    const video = document.getElementById("camera");
+    const layersDiv = document.getElementById("layers");
+    let stream;
 
-navigator.mediaDevices.getUserMedia({video:{facingMode:"environment"}})
-.then(s=>{stream=s;video.srcObject=s});
+    // Start Camera
+    navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
+        .then(s => { stream = s; video.srcObject = s; })
+        .catch(err => alert("Camera access required for AR."));
 
-/* TORCH */
-torch.onclick=async()=>{
-const track=stream?.getVideoTracks()[0];
-if(!track || !track.getCapabilities().torch)
-return alert("Torch not supported");
+    // Torch Toggle
+    document.getElementById('torchBtn').onclick = async () => {
+        const track = stream?.getVideoTracks()[0];
+        const caps = track?.getCapabilities();
+        if (caps?.torch) {
+            const current = track.getSettings().torch;
+            await track.applyConstraints({ advanced: [{ torch: !current }] });
+            document.getElementById('torchBtn').classList.toggle('active');
+        }
+    };
 
-const on=track.getSettings().torch;
-await track.applyConstraints({advanced:[{torch:!on}]});
-};
+    // Layer Management
+    document.getElementById('upload').onchange = e => {
+        const file = e.target.files[0];
+        if (file) {
+            const url = URL.createObjectURL(file);
+            const img = document.createElement("img");
+            img.src = url;
+            img.className = "layer";
+            layersDiv.appendChild(img);
+            initInteractions(img);
+        }
+    };
 
-/* LAYERS */
-const layersDiv=document.getElementById("layers");
-let activeLayer;
+    function initInteractions(el) {
+        let x = window.innerWidth/2, y = window.innerHeight/2;
+        let scale = 0.5, rot = 0, isLocked = false;
+        let pointers = new Map();
+        let startDist = 0, startScale = 1, startAngle = 0, startRot = 0;
 
-function createLayer(src){
-const img=document.createElement("img");
-img.src=src;
-img.className="layer";
-img.style.transform="translate(-50%,-50%)";
-layersDiv.appendChild(img);
-makeInteractive(img);
-activeLayer=img;
-}
+        const update = () => {
+            el.style.transform = `translate(${x}px, ${y}px) translate(-50%, -50%) scale(${scale}) rotate(${rot}deg)`;
+        };
 
-upload.onchange=e=>{
-const f=e.target.files[0];
-if(f)createLayer(URL.createObjectURL(f));
-};
+        el.onpointerdown = e => {
+            if (isLocked) return;
+            el.setPointerCapture(e.pointerId);
+            pointers.set(e.pointerId, e);
+            document.querySelectorAll('.layer').forEach(l => l.classList.remove('active'));
+            el.classList.add('active');
+        };
 
-addLayer.onclick=()=>upload.click();
+        el.onpointermove = e => {
+            if (!pointers.has(e.pointerId)) return;
+            pointers.set(e.pointerId, e);
 
-/* INTERACTION */
-let pointers=new Map(),startDist=0,startScale=1,startRot=0,startAngle=0;
+            if (pointers.size === 1) {
+                x += e.movementX;
+                y += e.movementY;
+            } else if (pointers.size === 2) {
+                const pts = Array.from(pointers.values());
+                const dx = pts[1].clientX - pts[0].clientX;
+                const dy = pts[1].clientY - pts[0].clientY;
+                const dist = Math.hypot(dx, dy);
+                const ang = Math.atan2(dy, dx) * 180 / Math.PI;
 
-function makeInteractive(el){
-let x=innerWidth/2,y=innerHeight/2,scale=1,rot=0,locked=false;
+                if (!startDist) {
+                    startDist = dist; startScale = scale;
+                    startAngle = ang; startRot = rot;
+                } else {
+                    scale = startScale * (dist / startDist);
+                    rot = startRot + (ang - startAngle);
+                }
+            }
+            update();
+        };
 
-function update(){
-el.style.transform=
-`translate(${x}px,${y}px) translate(-50%,-50%) scale(${scale}) rotate(${rot}deg)`;
-}
+        el.onpointerup = e => {
+            pointers.delete(e.pointerId);
+            if (pointers.size < 2) startDist = 0;
+        };
 
-el.onpointerdown=e=>{
-if(locked)return;
-pointers.set(e.pointerId,e);
-el.setPointerCapture(e.pointerId);
-activeLayer=el;
-};
+        // Localized UI triggers
+        document.getElementById('lockBtn').onclick = () => {
+            isLocked = !isLocked;
+            document.getElementById('lockBtn').classList.toggle('active');
+            el.style.opacity = isLocked ? '0.4' : '0.8';
+        };
 
-el.onpointermove=e=>{
-if(!pointers.has(e.pointerId))return;
-pointers.set(e.pointerId,e);
+        document.getElementById('resetBtn').onclick = () => {
+            x = window.innerWidth/2; y = window.innerHeight/2;
+            scale = 0.5; rot = 0; update();
+        };
+        
+        update();
+    }
 
-if(pointers.size===1){
-x+=e.movementX;
-y+=e.movementY;
-update();
-}
-
-if(pointers.size===2){
-const[a,b]=[...pointers.values()];
-const dx=b.clientX-a.clientX;
-const dy=b.clientY-a.clientY;
-const dist=Math.hypot(dx,dy);
-const ang=Math.atan2(dy,dx)*180/Math.PI;
-
-if(!startDist){
-startDist=dist;
-startScale=scale;
-startRot=rot;
-startAngle=ang;
-}else{
-scale=startScale*(dist/startDist);
-rot=startRot+(ang-startAngle);
-update();
-}
-}
-};
-
-el.onpointerup=e=>{
-pointers.delete(e.pointerId);
-if(pointers.size<2)startDist=0;
-};
-
-lock.onclick=()=>locked=!locked;
-
-reset.onclick=()=>{
-x=innerWidth/2;y=innerHeight/2;
-scale=1;rot=0;update();
-};
-}
-
-/* GUIDES */
-let guideOn=false;
-guides.onclick=()=>{
-guideOn=!guideOn;
-if(guideOn){
-const g=document.createElement("div");
-g.id="guide";
-document.body.appendChild(g);
-}else document.getElementById("guide")?.remove();
-};
-
-/* SERVICE WORKER */
-if("serviceWorker"in navigator){
-navigator.serviceWorker.register("sw.js");
-}
+    // Grid Toggle
+    document.getElementById('guideBtn').onclick = () => {
+        const g = document.getElementById('guide-grid');
+        const active = g.style.display === 'block';
+        g.style.display = active ? 'none' : 'block';
+        document.getElementById('guideBtn').classList.toggle('active');
+    };
 </script>
-
 </body>
 </html>
