@@ -8,13 +8,12 @@
     <style>
         :root {
             --bg: #000000;
-            --surface: #111111;
-            --glass: rgba(10, 10, 10, 0.75);
-            --border: rgba(255, 255, 255, 0.12);
+            --glass: rgba(10, 10, 10, 0.8);
+            --border: rgba(255, 255, 255, 0.15);
             --accent: #ffffff;
             --active-glow: #59ffd3;
             --text-main: #ffffff;
-            --text-dim: #666666;
+            --text-dim: #888888;
         }
 
         * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -27,9 +26,9 @@
             color: var(--text-main);
             position: fixed;
             width: 100%;
+            perspective: 1000px; /* Enables 3D VR effect */
         }
 
-        /* Viewport */
         #camera {
             position: fixed;
             inset: 0;
@@ -44,6 +43,7 @@
             inset: 0;
             z-index: 2;
             pointer-events: none;
+            transform-style: preserve-3d;
         }
 
         .layer {
@@ -55,23 +55,23 @@
             mix-blend-mode: screen;
             filter: grayscale(1) contrast(1.1);
             will-change: transform;
+            transform-origin: center center;
         }
 
         .layer.active { outline: 1px solid var(--accent); }
 
-        /* --- UI COMPONENTS --- */
+        /* UI PANELS */
         .ui-panel {
             position: fixed;
             z-index: 10;
-            backdrop-filter: blur(25px) saturate(200%);
-            -webkit-backdrop-filter: blur(25px) saturate(200%);
+            backdrop-filter: blur(20px) saturate(180%);
+            -webkit-backdrop-filter: blur(20px) saturate(180%);
             background: var(--glass);
             border: 1px solid var(--border);
             display: flex;
             align-items: center;
         }
 
-        /* Top Status Bar */
         .top-bar {
             top: calc(env(safe-area-inset-top) + 12px);
             left: 50%;
@@ -84,36 +84,49 @@
             justify-content: space-between;
         }
 
-        /* Bottom Floating Dock */
         .dock {
             bottom: calc(env(safe-area-inset-bottom) + 20px);
             left: 50%;
             transform: translateX(-50%);
-            padding: 8px;
-            border-radius: 28px;
-            gap: 8px;
+            padding: 10px;
+            border-radius: 30px;
+            gap: 12px;
         }
 
         .btn {
-            background: rgba(255, 255, 255, 0.03);
-            border: 1px solid transparent;
+            background: rgba(255, 255, 255, 0.05);
+            border: none;
             color: var(--text-main);
-            width: 48px;
-            height: 48px;
+            width: 50px;
+            height: 50px;
             display: flex;
             align-items: center;
             justify-content: center;
-            border-radius: 20px;
+            border-radius: 22px;
             cursor: pointer;
-            transition: all 0.2s ease;
+            transition: 0.2s;
         }
 
-        .btn:active { transform: scale(0.92); background: rgba(255,255,255,0.1); }
+        .btn:active { transform: scale(0.9); }
         .btn.primary { background: var(--accent); color: var(--bg); }
-        .btn.active { color: var(--active-glow); border-color: rgba(89, 255, 211, 0.3); }
-        .btn svg { width: 20px; height: 20px; stroke-width: 2.2px; }
+        .btn.active { color: var(--active-glow); box-shadow: 0 0 15px rgba(89, 255, 211, 0.2); }
+        .btn svg { width: 22px; height: 22px; stroke-width: 2px; }
 
-        /* --- SPLASH --- */
+        /* VR INITIALIZE BUTTON */
+        #ar-init {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.9);
+            z-index: 200;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 30px;
+        }
+
+        /* SPLASH */
         #splash {
             position: fixed;
             inset: 0;
@@ -122,43 +135,17 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            z-index: 100;
-            transition: opacity 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+            z-index: 300;
+            transition: opacity 0.8s ease;
         }
 
-        .logo-box {
-            width: 50px;
-            height: 50px;
-            border: 2px solid #fff;
-            margin-bottom: 24px;
-            position: relative;
-            animation: pulse 2s infinite;
-        }
+        .logo-box { width: 40px; height: 40px; border: 2px solid #fff; margin-bottom: 20px; animation: rot 4s infinite linear; }
+        @keyframes rot { from {transform: rotate(0deg)} to {transform: rotate(360deg)} }
 
-        @keyframes pulse { 
-            0% { transform: rotate(0deg); opacity: 0.5; } 
-            50% { transform: rotate(180deg); opacity: 1; } 
-            100% { transform: rotate(360deg); opacity: 0.5; }
-        }
-
-        .dev-credit {
-            margin-top: 10px;
-            font-size: 11px;
-            letter-spacing: 2px;
-            color: var(--text-dim);
-            text-transform: uppercase;
-        }
-
-        /* --- GUIDES --- */
         #guide-layer {
-            position: fixed;
-            inset: 0;
-            pointer-events: none;
-            display: none;
-            z-index: 3;
-            background-image: 
-                radial-gradient(circle, rgba(255,255,255,0.1) 1px, transparent 1px);
-            background-size: 40px 40px;
+            position: fixed; inset: 0; pointer-events: none; display: none; z-index: 3;
+            background-image: radial-gradient(rgba(255,255,255,0.1) 1px, transparent 1px);
+            background-size: 30px 30px;
         }
     </style>
 </head>
@@ -166,8 +153,14 @@
 
 <div id="splash">
     <div class="logo-box"></div>
-    <h1 style="letter-spacing: 6px; font-weight: 300; font-size: 1.2rem;">STUDIO AR</h1>
-    <p class="dev-credit">By Tanmay Tiwari</p>
+    <h1 style="letter-spacing: 5px; font-weight: 300;">STUDIO AR</h1>
+    <p style="font-size: 10px; color: #555; margin-top: 10px; letter-spacing: 2px;">BY SILENT PROGRAMMER</p>
+</div>
+
+<div id="ar-init">
+    <h2 style="margin-bottom: 20px; font-weight: 300;">Spatial Tracking Required</h2>
+    <p style="color: var(--text-dim); margin-bottom: 30px; font-size: 14px;">To lock the image in 3D space, we need motion sensor access.</p>
+    <button class="btn primary" style="width: auto; padding: 0 30px;" onclick="startARSession()">ENABLE VR LOCK</button>
 </div>
 
 <video id="camera" autoplay playsinline></video>
@@ -178,18 +171,18 @@
     <button class="btn" onclick="document.getElementById('upload').click()">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 5v14M5 12h14"/></svg>
     </button>
-    <span style="font-size: 11px; font-weight: 600; letter-spacing: 1px; color: var(--text-dim);">PRO EDITION</span>
+    <div id="vr-status" style="font-size: 10px; color: var(--text-dim);">VR READY</div>
     <button class="btn" id="torchBtn">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
     </button>
 </div>
 
 <div class="ui-panel dock">
-    <button class="btn" id="guideBtn" title="Toggle Grid">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 3h18v18H3zM9 3v18M15 3v18M3 9h18M3 15h18"/></svg>
+    <button class="btn" id="vrLockBtn" title="Spatial Lock">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
     </button>
-    <button class="btn" id="lockBtn" title="Lock Layers">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+    <button class="btn" id="guideBtn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 3h18v18H3zM9 3v18M15 3v18M3 9h18M3 15h18"/></svg>
     </button>
     <button class="btn primary" id="resetBtn">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8M3 3v5h5"/></svg>
@@ -199,134 +192,131 @@
 <input type="file" id="upload" accept="image/*" hidden>
 
 <script>
-    // --- APP LIFECYCLE ---
-    window.addEventListener('load', () => {
-        setTimeout(() => {
-            const s = document.getElementById('splash');
-            s.style.opacity = '0';
-            setTimeout(() => s.remove(), 600);
-        }, 2000);
-    });
-
-    const video = document.getElementById("camera");
     const layersDiv = document.getElementById("layers");
-    let stream;
-    let isGlobalLocked = false;
+    let isSpatialLocked = false;
+    let gyro = { alpha: 0, beta: 0, gamma: 0 };
+    let baseGyro = { alpha: 0, beta: 0, gamma: 0 };
 
-    // --- CAMERA SETUP ---
-    async function initCamera() {
-        try {
-            stream = await navigator.mediaDevices.getUserMedia({ 
-                video: { facingMode: "environment", focusMode: "continuous" } 
-            });
-            video.srcObject = stream;
-        } catch (e) {
-            console.error("Camera error:", e);
+    // --- AR / SENSOR ENGINE ---
+    async function startARSession() {
+        if (typeof DeviceOrientationEvent.requestPermission === 'function') {
+            const permission = await DeviceOrientationEvent.requestPermission();
+            if (permission !== 'granted') return alert("Permission denied");
         }
-    }
-    initCamera();
-
-    // --- TOOLBAR LOGIC ---
-    document.getElementById('torchBtn').onclick = async () => {
-        const track = stream?.getVideoTracks()[0];
-        const caps = track?.getCapabilities();
-        if (caps?.torch) {
-            const current = track.getSettings().torch;
-            await track.applyConstraints({ advanced: [{ torch: !current }] });
-            document.getElementById('torchBtn').classList.toggle('active');
-        }
-    };
-
-    document.getElementById('guideBtn').onclick = () => {
-        const gl = document.getElementById('guide-layer');
-        const isHidden = getComputedStyle(gl).display === 'none';
-        gl.style.display = isHidden ? 'block' : 'none';
-        document.getElementById('guideBtn').classList.toggle('active');
-    };
-
-    document.getElementById('lockBtn').onclick = () => {
-        isGlobalLocked = !isGlobalLocked;
-        document.getElementById('lockBtn').classList.toggle('active');
-        document.querySelectorAll('.layer').forEach(l => {
-            l.style.opacity = isGlobalLocked ? '0.5' : '1';
+        
+        window.addEventListener('deviceorientation', (e) => {
+            if (!isSpatialLocked) {
+                baseGyro = { alpha: e.alpha, beta: e.beta, gamma: e.gamma };
+            }
+            gyro = { alpha: e.alpha, beta: e.beta, gamma: e.gamma };
+            updateAllLayers();
         });
+
+        document.getElementById('ar-init').style.display = 'none';
+        initCamera();
+    }
+
+    async function initCamera() {
+        const stream = await navigator.mediaDevices.getUserMedia({ 
+            video: { facingMode: "environment", focusMode: "continuous" } 
+        });
+        document.getElementById('camera').srcObject = stream;
+    }
+
+    // --- INTERACTION LOGIC ---
+    function applyGestures(el) {
+        let state = { x: innerWidth/2, y: innerHeight/2, s: 0.5, r: 0 };
+        let pointers = new Map();
+        let iDist = 0, iScale = 1, iAngle = 0, iRot = 0;
+
+        const update = () => {
+            let dr = 0, dx = 0, dy = 0;
+            
+            if (isSpatialLocked) {
+                // VR Compensation Logic:
+                // Subtract current tilt from the base tilt to keep image stable
+                dr = -(gyro.alpha - baseGyro.alpha);
+                dx = (gyro.gamma - baseGyro.gamma) * 5; // Horizontal sway
+                dy = (gyro.beta - baseGyro.beta) * 5;   // Vertical sway
+            }
+
+            el.style.transform = `
+                translate3d(${state.x + dx}px, ${state.y + dy}px, 0) 
+                translate(-50%, -50%) 
+                scale(${state.s}) 
+                rotate(${state.r + dr}deg)
+            `;
+        };
+
+        el.addEventListener('pointerdown', e => {
+            el.setPointerCapture(e.pointerId);
+            pointers.set(e.pointerId, e);
+            if (pointers.size === 2) {
+                const pts = [...pointers.values()];
+                iDist = Math.hypot(pts[1].clientX - pts[0].clientX, pts[1].clientY - pts[0].clientY);
+                iAngle = Math.atan2(pts[1].clientY - pts[0].clientY, pts[1].clientX - pts[0].clientX);
+                iScale = state.s; iRot = state.r;
+            }
+        });
+
+        el.addEventListener('pointermove', e => {
+            if (!pointers.has(e.pointerId)) return;
+            pointers.set(e.pointerId, e);
+
+            if (pointers.size === 1) {
+                state.x += e.movementX;
+                state.y += e.movementY;
+            } else if (pointers.size === 2) {
+                const pts = [...pointers.values()];
+                const dist = Math.hypot(pts[1].clientX - pts[0].clientX, pts[1].clientY - pts[0].clientY);
+                const ang = Math.atan2(pts[1].clientY - pts[0].clientY, pts[1].clientX - pts[0].clientX);
+                state.s = iScale * (dist / iDist);
+                state.r = iRot + (ang - iAngle) * (180 / Math.PI);
+            }
+            update();
+        });
+
+        el.addEventListener('pointerup', e => pointers.delete(e.pointerId));
+        
+        // Expose update function to global loop
+        el.refreshAR = update;
+        update();
+    }
+
+    function updateAllLayers() {
+        document.querySelectorAll('.layer').forEach(l => {
+            if (l.refreshAR) l.refreshAR();
+        });
+    }
+
+    // --- UI EVENTS ---
+    document.getElementById('vrLockBtn').onclick = function() {
+        isSpatialLocked = !isSpatialLocked;
+        this.classList.toggle('active');
+        baseGyro = { ...gyro }; // Calibrate "flat" position
+        document.getElementById('vr-status').innerText = isSpatialLocked ? "VR LOCKED" : "VR READY";
     };
 
-    // --- IMAGE ENGINE ---
     document.getElementById('upload').onchange = e => {
         const file = e.target.files[0];
         if (file) {
-            const url = URL.createObjectURL(file);
             const img = document.createElement("img");
-            img.src = url;
+            img.src = URL.createObjectURL(file);
             img.className = "layer";
             layersDiv.appendChild(img);
             applyGestures(img);
         }
     };
 
-    function applyGestures(el) {
-        let posX = window.innerWidth / 2, posY = window.innerHeight / 2;
-        let scale = 0.4, rotation = 0;
-        
-        let pointers = new Map();
-        let initialDist = 0, initialScale = 1;
-        let initialAngle = 0, initialRot = 0;
+    document.getElementById('guideBtn').onclick = () => {
+        const gl = document.getElementById('guide-layer');
+        gl.style.display = gl.style.display === 'block' ? 'none' : 'block';
+    };
 
-        const updateTransform = () => {
-            el.style.transform = `translate(${posX}px, ${posY}px) translate(-50%, -50%) scale(${scale}) rotate(${rotation}deg)`;
-        };
+    document.getElementById('resetBtn').onclick = () => location.reload();
 
-        el.addEventListener('pointerdown', e => {
-            if (isGlobalLocked) return;
-            el.setPointerCapture(e.pointerId);
-            pointers.set(e.pointerId, e);
-            
-            document.querySelectorAll('.layer').forEach(l => l.classList.remove('active'));
-            el.classList.add('active');
-            
-            if (pointers.size === 2) {
-                const pts = Array.from(pointers.values());
-                initialDist = Math.hypot(pts[1].clientX - pts[0].clientX, pts[1].clientY - pts[0].clientY);
-                initialAngle = Math.atan2(pts[1].clientY - pts[0].clientY, pts[1].clientX - pts[0].clientX);
-                initialScale = scale;
-                initialRot = rotation;
-            }
-        });
-
-        el.addEventListener('pointermove', e => {
-            if (!pointers.has(e.pointerId) || isGlobalLocked) return;
-            pointers.set(e.pointerId, e);
-
-            if (pointers.size === 1) {
-                // One finger drag
-                posX += e.movementX;
-                posY += e.movementY;
-            } else if (pointers.size === 2) {
-                // Two finger pinch/rotate
-                const pts = Array.from(pointers.values());
-                const currentDist = Math.hypot(pts[1].clientX - pts[0].clientX, pts[1].clientY - pts[0].clientY);
-                const currentAngle = Math.atan2(pts[1].clientY - pts[0].clientY, pts[1].clientX - pts[0].clientX);
-                
-                scale = initialScale * (currentDist / initialDist);
-                rotation = initialRot + (currentAngle - initialAngle) * (180 / Math.PI);
-            }
-            updateTransform();
-        });
-
-        el.addEventListener('pointerup', e => {
-            pointers.delete(e.pointerId);
-            if (pointers.size < 2) initialDist = 0;
-        });
-
-        document.getElementById('resetBtn').onclick = () => {
-            posX = window.innerWidth/2; posY = window.innerHeight/2;
-            scale = 0.4; rotation = 0; updateTransform();
-        };
-
-        // Initial Position
-        el.onload = updateTransform;
-    }
+    // Splash Loader
+    window.onload = () => setTimeout(() => document.getElementById('splash').style.opacity = '0', 2000);
 </script>
 </body>
 </html>
