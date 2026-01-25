@@ -7,136 +7,142 @@
 
 <style>
 :root {
-  --glass: rgba(20,20,20,.65);
+  --glass: rgba(15,15,15,.7);
   --border: rgba(255,255,255,.15);
-  --accent: #4cffc0;
+  --accent: #5cffc6;
 }
 
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
+* {margin:0;padding:0;box-sizing:border-box;}
 
 body {
-  background: black;
-  overflow: hidden;
-  font-family: system-ui, -apple-system, BlinkMacSystemFont;
+  background:black;
+  font-family:system-ui;
+  overflow:hidden;
 }
 
-/* Camera */
-#camera {
-  position: fixed;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
+/* ================= SPLASH ================= */
+#splash {
+  position:fixed;
+  inset:0;
+  background:linear-gradient(135deg,#000,#111);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  z-index:100;
+  animation:fadeOut 1s ease forwards;
+  animation-delay:2.5s;
 }
 
-/* Overlay */
+.splash-box {
+  text-align:center;
+  color:white;
+}
+
+.splash-box h1 {
+  font-size:2.6rem;
+  letter-spacing:2px;
+}
+
+.splash-box p {
+  opacity:.7;
+}
+
+@keyframes fadeOut {
+  to {opacity:0; pointer-events:none;}
+}
+
+/* ================= CAMERA ================= */
+#camera, #freezeCanvas {
+  position:fixed;
+  inset:0;
+  width:100%;
+  height:100%;
+  object-fit:cover;
+}
+
+/* ================= OVERLAY ================= */
 #overlay-container {
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
+  position:fixed;
+  inset:0;
+  pointer-events:none;
 }
 
 #overlay-img {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform-origin: center;
-  max-width: 70vw;
-  opacity: .6;
-  pointer-events: auto;
-  touch-action: none;
-  cursor: grab;
-  user-select: none;
+  position:absolute;
+  top:50%;
+  left:50%;
+  max-width:70vw;
+  opacity:.6;
+  pointer-events:auto;
+  touch-action:none;
 }
 
-/* Toolbar */
-.toolbar {
-  position: fixed;
-  top: 12px;
-  left: 50%;
-  transform: translateX(-50%);
-  display: flex;
-  gap: 10px;
-  padding: 10px 14px;
-  background: var(--glass);
-  border: 1px solid var(--border);
-  border-radius: 18px;
-  backdrop-filter: blur(12px);
-  z-index: 10;
+/* GRID */
+#grid {
+  position:fixed;
+  inset:0;
+  pointer-events:none;
+  display:none;
 }
 
-.toolbar button,
-.toolbar input[type=file] {
-  background: transparent;
-  color: white;
-  border: 1px solid var(--border);
-  padding: 8px 12px;
-  border-radius: 12px;
-  cursor: pointer;
+/* ================= UI ================= */
+.toolbar, .controls {
+  position:fixed;
+  left:50%;
+  transform:translateX(-50%);
+  background:var(--glass);
+  border:1px solid var(--border);
+  backdrop-filter:blur(12px);
+  border-radius:20px;
+  display:flex;
+  gap:10px;
+  padding:12px;
+  z-index:10;
 }
 
-.toolbar button:hover {
-  border-color: var(--accent);
-  color: var(--accent);
+.toolbar {top:12px;}
+.controls {bottom:15px;flex-wrap:wrap;width:min(95%,520px);}
+
+button, input {
+  background:transparent;
+  color:white;
+  border:1px solid var(--border);
+  padding:8px 14px;
+  border-radius:12px;
 }
 
-/* Bottom Controls */
-.controls {
-  position: fixed;
-  bottom: 16px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: min(95%, 420px);
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  padding: 14px;
-  background: var(--glass);
-  border-radius: 20px;
-  border: 1px solid var(--border);
-  backdrop-filter: blur(12px);
-}
+button:hover {border-color:var(--accent);color:var(--accent);}
 
-.controls label {
-  color: #aaa;
-  font-size: 13px;
-}
+label {font-size:13px;color:#aaa;}
 
-.controls input[type=range] {
-  flex: 1;
-}
+input[type=range]{flex:1}
 
-.controls button {
-  background: transparent;
-  color: white;
-  border: 1px solid var(--border);
-  padding: 8px 14px;
-  border-radius: 12px;
-  cursor: pointer;
-}
-
-.controls button:hover {
-  border-color: var(--accent);
-}
-
-/* Mobile */
-@media(max-width:600px) {
-  .toolbar {
-    width: 95%;
-    justify-content: space-between;
-  }
+/* ================= MOBILE ================= */
+@media(max-width:600px){
+.toolbar,.controls{width:95%}
 }
 </style>
 </head>
 
 <body>
 
-<video id="camera" autoplay playsinline></video>
+<!-- SPLASH -->
+<div id="splash">
+  <div class="splash-box">
+    <h1>AR Sketch</h1>
+    <p>by Silent Programmer</p>
+    <p>v1.0.0</p>
+  </div>
+</div>
 
+<!-- CAMERA -->
+<video id="camera" autoplay playsinline></video>
+<canvas id="freezeCanvas" hidden></canvas>
+
+<!-- GRID -->
+<canvas id="grid"></canvas>
+
+<!-- OVERLAY -->
 <div id="overlay-container">
   <img id="overlay-img">
 </div>
@@ -144,140 +150,190 @@ body {
 <!-- TOP BAR -->
 <div class="toolbar">
   <input type="file" id="upload" accept="image/*">
-  <button id="lock">Lock</button>
+  <button id="freezeBtn">Freeze</button>
+  <button id="gridBtn">Grid</button>
+  <button id="outlineBtn">Outline</button>
 </div>
 
-<!-- BOTTOM PANEL -->
+<!-- BOTTOM -->
 <div class="controls">
   <label>Opacity</label>
-  <input type="range" min="0.1" max="1" step="0.05" value="0.6" id="opacity">
-  <button id="rotate">Rotate</button>
+  <input type="range" id="opacity" min="0.1" max="1" step="0.05" value="0.6">
+  <button id="lock">Lock</button>
+  <button id="saveBtn">Save</button>
   <button id="reset">Reset</button>
 </div>
 
 <script>
+/* ===== CAMERA ===== */
 const video = document.getElementById("camera");
+const freezeCanvas = document.getElementById("freezeCanvas");
+const fctx = freezeCanvas.getContext("2d");
+
+navigator.mediaDevices.getUserMedia({
+  video:{facingMode:"environment"}
+}).then(s=>video.srcObject=s);
+
+/* ===== OVERLAY ===== */
 const overlay = document.getElementById("overlay-img");
 
-const upload = document.getElementById("upload");
-const opacity = document.getElementById("opacity");
-const rotateBtn = document.getElementById("rotate");
-const lockBtn = document.getElementById("lock");
-const resetBtn = document.getElementById("reset");
+let scale=1,rotation=0,posX=innerWidth/2,posY=innerHeight/2;
+let locked=false;
 
-let scale = 1;
-let rotation = 0;
-let locked = false;
-let posX = innerWidth/2;
-let posY = innerHeight/2;
+/* ===== UI ===== */
+const upload=document.getElementById("upload");
+const opacity=document.getElementById("opacity");
+const lockBtn=document.getElementById("lock");
+const resetBtn=document.getElementById("reset");
+const freezeBtn=document.getElementById("freezeBtn");
+const gridBtn=document.getElementById("gridBtn");
+const outlineBtn=document.getElementById("outlineBtn");
+const saveBtn=document.getElementById("saveBtn");
 
-// Camera
-navigator.mediaDevices.getUserMedia({
-  video: { facingMode: "environment" }
-}).then(s => video.srcObject = s);
+/* ===== GRID ===== */
+const grid=document.getElementById("grid");
+const gctx=grid.getContext("2d");
 
-// Upload
-upload.onchange = e => {
-  const file = e.target.files[0];
-  overlay.src = URL.createObjectURL(file);
+function drawGrid(){
+  grid.width=innerWidth;
+  grid.height=innerHeight;
+  gctx.clearRect(0,0,grid.width,grid.height);
+  gctx.strokeStyle="rgba(255,255,255,.15)";
+  for(let i=0;i<grid.width;i+=40){
+    gctx.beginPath();
+    gctx.moveTo(i,0);gctx.lineTo(i,grid.height);gctx.stroke();
+  }
+  for(let j=0;j<grid.height;j+=40){
+    gctx.beginPath();
+    gctx.moveTo(0,j);gctx.lineTo(grid.width,j);gctx.stroke();
+  }
+}
+
+/* ===== SPLASH REMOVE ===== */
+setTimeout(()=>document.getElementById("splash").remove(),3000);
+
+/* ===== UPLOAD ===== */
+upload.onchange=e=>{
+  const f=e.target.files[0];
+  if(!f) return;
+  overlay.src=URL.createObjectURL(f);
 };
 
-// Opacity
-opacity.oninput = e => overlay.style.opacity = e.target.value;
+opacity.oninput=e=>overlay.style.opacity=e.target.value;
 
-// Rotate button
-rotateBtn.onclick = () => {
-  rotation += 10;
+/* ===== FREEZE ===== */
+let frozen=false;
+freezeBtn.onclick=()=>{
+  frozen=!frozen;
+  if(frozen){
+    freezeCanvas.hidden=false;
+    freezeCanvas.width=innerWidth;
+    freezeCanvas.height=innerHeight;
+    fctx.drawImage(video,0,0,freezeCanvas.width,freezeCanvas.height);
+    video.pause();
+    freezeBtn.textContent="Unfreeze";
+  }else{
+    freezeCanvas.hidden=true;
+    video.play();
+    freezeBtn.textContent="Freeze";
+  }
+};
+
+/* ===== GRID TOGGLE ===== */
+let gridOn=false;
+gridBtn.onclick=()=>{
+  gridOn=!gridOn;
+  if(gridOn){grid.style.display="block";drawGrid();}
+  else grid.style.display="none";
+};
+
+/* ===== LOCK ===== */
+lockBtn.onclick=()=>{
+  locked=!locked;
+  overlay.style.pointerEvents=locked?"none":"auto";
+  lockBtn.textContent=locked?"Unlock":"Lock";
+};
+
+/* ===== RESET ===== */
+resetBtn.onclick=()=>{
+  scale=1;rotation=0;
+  posX=innerWidth/2;posY=innerHeight/2;
   update();
 };
 
-// Lock
-lockBtn.onclick = () => {
-  locked = !locked;
-  overlay.style.pointerEvents = locked ? "none" : "auto";
-  lockBtn.textContent = locked ? "Unlock" : "Lock";
+/* ===== SAVE ===== */
+saveBtn.onclick=()=>{
+  const c=document.createElement("canvas");
+  c.width=innerWidth;c.height=innerHeight;
+  const ctx=c.getContext("2d");
+
+  ctx.drawImage(frozen?freezeCanvas:video,0,0,c.width,c.height);
+
+  ctx.globalAlpha=overlay.style.opacity||0.6;
+  ctx.translate(posX,posY);
+  ctx.rotate(rotation*Math.PI/180);
+  ctx.scale(scale,scale);
+  ctx.drawImage(overlay,-overlay.width/2,-overlay.height/2);
+
+  const a=document.createElement("a");
+  a.download="arsketch.png";
+  a.href=c.toDataURL();
+  a.click();
 };
 
-// Reset
-resetBtn.onclick = () => {
-  scale = 1;
-  rotation = 0;
-  posX = innerWidth/2;
-  posY = innerHeight/2;
-  update();
-};
-
-// Update transform
-function update() {
-  overlay.style.transform =
+/* ===== TRANSFORM ===== */
+function update(){
+  overlay.style.transform=
    `translate(${posX}px,${posY}px) translate(-50%,-50%) scale(${scale}) rotate(${rotation}deg)`;
 }
 
-// =====================
-// TOUCH + DRAG SUPPORT
-// =====================
+/* ===== TOUCH GESTURES ===== */
+let pointers=new Map();
+let startDist=0,startScale=1,startAngle=0,startRotation=0;
 
-let pointers = new Map();
-let startDist = 0;
-let startScale = 1;
-let startAngle = 0;
-let startRotation = 0;
-
-overlay.addEventListener("pointerdown", e => {
-  if (locked) return;
-  pointers.set(e.pointerId, e);
+overlay.addEventListener("pointerdown",e=>{
+  if(locked) return;
+  pointers.set(e.pointerId,e);
   overlay.setPointerCapture(e.pointerId);
 });
 
-overlay.addEventListener("pointermove", e => {
-  if (!pointers.has(e.pointerId) || locked) return;
+overlay.addEventListener("pointermove",e=>{
+  if(!pointers.has(e.pointerId))return;
+  pointers.set(e.pointerId,e);
 
-  pointers.set(e.pointerId, e);
-
-  if (pointers.size === 1) {
-    // drag
-    const p = [...pointers.values()][0];
-    posX += e.movementX;
-    posY += e.movementY;
+  if(pointers.size===1){
+    posX+=e.movementX;
+    posY+=e.movementY;
     update();
   }
 
-  if (pointers.size === 2) {
-    const [a,b] = [...pointers.values()];
+  if(pointers.size===2){
+    const[a,b]=[...pointers.values()];
+    const dx=b.clientX-a.clientX;
+    const dy=b.clientY-a.clientY;
+    const dist=Math.hypot(dx,dy);
+    const ang=Math.atan2(dy,dx)*180/Math.PI;
 
-    const dx = b.clientX - a.clientX;
-    const dy = b.clientY - a.clientY;
-
-    const dist = Math.hypot(dx,dy);
-    const angle = Math.atan2(dy,dx) * 180/Math.PI;
-
-    if (!startDist) {
-      startDist = dist;
-      startScale = scale;
-      startAngle = angle;
-      startRotation = rotation;
-    } else {
-      scale = startScale * (dist / startDist);
-      rotation = startRotation + (angle - startAngle);
+    if(!startDist){
+      startDist=dist;
+      startScale=scale;
+      startAngle=ang;
+      startRotation=rotation;
+    }else{
+      scale=startScale*(dist/startDist);
+      rotation=startRotation+(ang-startAngle);
       update();
     }
   }
 });
 
-overlay.addEventListener("pointerup", resetPointers);
-overlay.addEventListener("pointercancel", resetPointers);
+overlay.addEventListener("pointerup",resetPtr);
+overlay.addEventListener("pointercancel",resetPtr);
 
-function resetPointers(e){
+function resetPtr(e){
   pointers.delete(e.pointerId);
-  if (pointers.size < 2) startDist = 0;
+  if(pointers.size<2)startDist=0;
 }
-
-// Mouse wheel zoom
-window.addEventListener("wheel", e=>{
-  scale += e.deltaY * -0.001;
-  scale = Math.min(Math.max(.1,scale),5);
-  update();
-});
 </script>
 
 </body>
